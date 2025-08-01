@@ -2,24 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chronic Kidney Disease Prediction Tool</title>
-    
-    <!-- PWA Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#1a6fc9">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="CKD Predictor">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="CKD Predictor">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Favicon and Apple Touch Icons -->
-    <link rel="icon" href="icons/favicon.ico">
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    
+    <meta name="description" content="Chronic Kidney Disease Prediction Tool - Assess your risk factors for CKD">
+    <title>Chronic Kidney Disease Prediction Tool</title>
+    <link rel="manifest" href="/manifest.json">
     <style>
         :root {
             --primary-color: #1a6fc9;
@@ -44,7 +31,6 @@
             margin: 0 auto;
             padding: 20px;
             background-color: var(--light-gray);
-            -webkit-tap-highlight-color: transparent;
         }
         
         header {
@@ -80,35 +66,37 @@
             margin-bottom: 0.8rem;
         }
 
-        /* Install Button Styles */
+        /* PWA Install Button */
         .install-btn {
             position: absolute;
             top: 15px;
             right: 15px;
-            background-color: var(--secondary-color);
-            color: var(--white);
+            background-color: var(--white);
+            color: var(--primary-color);
             border: none;
             padding: 8px 15px;
             border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
+            font-size: 0.9rem;
             font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             transition: all 0.3s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            display: none;
-            z-index: 100;
         }
-
+        
         .install-btn:hover {
-            background-color: #219653;
+            background-color: var(--primary-dark);
+            color: var(--white);
             transform: translateY(-2px);
         }
-
+        
         .install-btn i {
-            margin-right: 5px;
+            font-size: 1.1rem;
         }
 
-        /* Security/privacy elements */
+        /* New security/privacy elements */
         .security-badge {
             display: inline-block;
             background-color: var(--security-color);
@@ -727,6 +715,21 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
+        /* Offline notification */
+        .offline-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--danger-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+        }
+        
         @media (max-width: 768px) {
             .visualization-grid {
                 grid-template-columns: 1fr;
@@ -769,6 +772,14 @@
                 max-width: 95%;
                 padding: 20px;
             }
+            
+            .install-btn {
+                position: static;
+                margin-top: 15px;
+                margin-left: auto;
+                margin-right: auto;
+                display: block;
+            }
         }
         
         @media (max-width: 480px) {
@@ -780,6 +791,47 @@
             .chart-container {
                 height: 240px;
             }
+        }
+        
+        /* Add to Home Screen prompt */
+        .ath-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            display: none;
+        }
+        
+        .ath-prompt p {
+            margin: 0;
+            flex-grow: 1;
+        }
+        
+        .ath-prompt button {
+            background-color: white;
+            color: var(--primary-color);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-left: 15px;
+            cursor: pointer;
+        }
+        
+        .ath-prompt button.close {
+            background: none;
+            color: white;
+            font-size: 20px;
+            padding: 0 0 0 10px;
         }
     </style>
     <!-- Load Chart.js from CDN -->
@@ -793,11 +845,23 @@
 </head>
 <body>
     <header>
-        <button id="install-btn" class="install-btn hidden">
-            <i class="fas fa-download"></i> Install App
-        </button>
         <h1>Chronic Kidney Disease Prediction Tool <span class="security-badge">Secure</span></h1>
+        <button id="installBtn" class="install-btn hidden">
+            <i class="fas fa-download"></i> Install
+        </button>
     </header>
+
+    <!-- Offline notification -->
+    <div id="offlineNotification" class="offline-notification">
+        You are currently offline. Some features may not be available.
+    </div>
+    
+    <!-- Add to Home Screen prompt -->
+    <div id="athPrompt" class="ath-prompt">
+        <p>Install this app for a better experience</p>
+        <button id="installPromptBtn">Install</button>
+        <button class="close" id="closeAthPrompt">&times;</button>
+    </div>
 
     <section id="welcome-screen">
         <div class="welcome-message">
@@ -1171,49 +1235,8 @@
         let riskCharts = {};
         let deferredPrompt;
         
-        let deferredPrompt;
-const installBtn = document.getElementById('install-btn');
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    if (installBtn) {
-        installBtn.style.display = 'block';
-    }
-});
-
-// App installed detection
-window.addEventListener('appinstalled', () => {
-    if (installBtn) installBtn.style.display = 'none';
-    deferredPrompt = null;
-    console.log('PWA was installed');
-});
-
-// DOMContentLoaded event
-document.addEventListener('DOMContentLoaded', function() {
-    // Install button click handler
-    if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    installBtn.style.display = 'none';
-                    console.log('User accepted the install prompt');
-                } else {
-                    console.log('User dismissed the install prompt');
-                }
-                deferredPrompt = null;
-            }
-        });
-    }
-            
-            // Detect if in standalone mode
-            if (window.matchMedia('(display-mode: standalone)').matches || 
-                window.navigator.standalone === true) {
-                if (installBtn) installBtn.style.display = 'none';
-            }
-            
+        // Initialize form event listeners
+        document.addEventListener('DOMContentLoaded', function() {
             // Start assessment button
             document.getElementById('start-assessment-btn').addEventListener('click', function() {
                 document.getElementById('welcome-screen').classList.add('hidden');
@@ -1304,32 +1327,89 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Your data has been deleted. In a production environment, this would permanently remove all your data from our servers.');
                 }
             });
+            
+            // Install button
+            document.getElementById('installBtn').addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    } else {
+                        console.log('User dismissed the install prompt');
+                    }
+                    deferredPrompt = null;
+                }
+            });
+            
+            // Install prompt button
+            document.getElementById('installPromptBtn').addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                        hideInstallPrompt();
+                    } else {
+                        console.log('User dismissed the install prompt');
+                    }
+                    deferredPrompt = null;
+                }
+            });
+            
+            // Close ATH prompt
+            document.getElementById('closeAthPrompt').addEventListener('click', hideInstallPrompt);
+            
+            // Check if app is running in standalone mode
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                console.log('Running in standalone mode');
+                document.getElementById('installBtn').classList.add('hidden');
+            }
+            
+            // Check network status
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+            updateOnlineStatus();
         });
-
-        // Handle beforeinstallprompt event
+        
+        // PWA Installation Handling
         window.addEventListener('beforeinstallprompt', (e) => {
             // Prevent the mini-infobar from appearing on mobile
             e.preventDefault();
             // Stash the event so it can be triggered later
             deferredPrompt = e;
             // Show the install button
-            const installBtn = document.getElementById('install-btn');
-            if (installBtn) {
-                installBtn.style.display = 'block';
+            document.getElementById('installBtn').classList.remove('hidden');
+            // Show the install prompt (only if not in standalone mode)
+            if (!window.matchMedia('(display-mode: standalone)').matches) {
+                setTimeout(showInstallPrompt, 5000); // Show after 5 seconds
             }
         });
-
-        // Register Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful');
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
-            });
+        
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA was installed');
+            hideInstallPrompt();
+            document.getElementById('installBtn').classList.add('hidden');
+        });
+        
+        function showInstallPrompt() {
+            if (deferredPrompt && !localStorage.getItem('installPromptDismissed')) {
+                document.getElementById('athPrompt').style.display = 'flex';
+            }
+        }
+        
+        function hideInstallPrompt() {
+            document.getElementById('athPrompt').style.display = 'none';
+            localStorage.setItem('installPromptDismissed', 'true');
+        }
+        
+        function updateOnlineStatus() {
+            const offlineNotification = document.getElementById('offlineNotification');
+            if (navigator.onLine) {
+                offlineNotification.style.display = 'none';
+            } else {
+                offlineNotification.style.display = 'block';
+            }
         }
 
         // New function to handle sharing results based on user preferences
@@ -2549,19 +2629,18 @@ Generated on: ${new Date().toLocaleDateString()}
             riskCharts = {};
         }
     </script>
+    
+    <!-- Service Worker Registration -->
     <script>
-    // Register Service Worker
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(registration => {
-                    console.log('ServiceWorker registration successful');
-                })
-                .catch(err => {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }).catch(err => {
                     console.log('ServiceWorker registration failed: ', err);
                 });
-        });
-    }
-  </script>
+            });
+        }
+    </script>
 </body>
 </html>
