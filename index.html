@@ -1171,33 +1171,42 @@
         let riskCharts = {};
         let deferredPrompt;
         
-        // Initialize form event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            // PWA Installation Logic
-            const installBtn = document.getElementById('install-btn');
-            
-            if (installBtn) {
-                installBtn.addEventListener('click', async () => {
-                    if (deferredPrompt) {
-                        deferredPrompt.prompt();
-                        const { outcome } = await deferredPrompt.userChoice;
-                        if (outcome === 'accepted') {
-                            installBtn.style.display = 'none';
-                            console.log('User accepted the install prompt');
-                        } else {
-                            console.log('User dismissed the install prompt');
-                        }
-                        deferredPrompt = null;
-                    }
-                });
-                
-                // Check if app is already installed
-                window.addEventListener('appinstalled', () => {
+        let deferredPrompt;
+const installBtn = document.getElementById('install-btn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installBtn) {
+        installBtn.style.display = 'block';
+    }
+});
+
+// App installed detection
+window.addEventListener('appinstalled', () => {
+    if (installBtn) installBtn.style.display = 'none';
+    deferredPrompt = null;
+    console.log('PWA was installed');
+});
+
+// DOMContentLoaded event
+document.addEventListener('DOMContentLoaded', function() {
+    // Install button click handler
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
                     installBtn.style.display = 'none';
-                    deferredPrompt = null;
-                    console.log('PWA was installed');
-                });
+                    console.log('User accepted the install prompt');
+                } else {
+                    console.log('User dismissed the install prompt');
+                }
+                deferredPrompt = null;
             }
+        });
+    }
             
             // Detect if in standalone mode
             if (window.matchMedia('(display-mode: standalone)').matches || 
